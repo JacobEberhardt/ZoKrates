@@ -25,6 +25,7 @@ extern crate wasmi;
 extern crate zokrates_embed;
 extern crate zokrates_field;
 extern crate zokrates_pest_ast;
+extern crate zkinterface;
 
 mod embed;
 mod flatten;

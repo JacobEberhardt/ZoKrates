@@ -10,6 +10,7 @@ build = "build.rs"
 default = []
 libsnark = ["cc", "cmake", "git2"]
 wasm = ["wasmi", "parity-wasm", "rustc-hex"]
+curve25519 = ["zokrates_field/curve25519"]
 
 [dependencies]
 libc = "0.2.0"
@@ -36,6 +37,7 @@ wasmi = { version = "=0.4.5", optional = true }
 parity-wasm = { version = "0.35.3", optional = true }
 rustc-hex = { version = "1.0", optional = true }
 csv = "1"
+zkinterface = "1.0.6"
 
 [dev-dependencies]
 glob = "0.2.11"
