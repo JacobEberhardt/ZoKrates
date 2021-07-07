@@ -750,13 +750,6 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
         e: UExpressionInner<'ast, T>,
     ) -> Result<UExpressionInner<'ast, T>, Error> {
         match e {
-            UExpressionInner::Identifier(id) => match self.constants.get(&id) {
-                Some(e) => match e {
-                    TypedExpression::Uint(e) => Ok(e.as_inner().clone()),
-                    _ => unreachable!("constant stored for a uint should be a uint"),
-                },
-                None => Ok(UExpressionInner::Identifier(id)),
-            },
             UExpressionInner::Add(box e1, box e2) => match (
                 self.fold_uint_expression(e1)?.into_inner(),
                 self.fold_uint_expression(e2)?.into_inner(),
@@ -980,15 +973,6 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
         e: FieldElementExpression<'ast, T>,
     ) -> Result<FieldElementExpression<'ast, T>, Error> {
         match e {
-            FieldElementExpression::Identifier(id) => match self.constants.get(&id) {
-                Some(e) => match e {
-                    TypedExpression::FieldElement(e) => Ok(e.clone()),
-                    _ => unreachable!(
-                        "constant stored for a field element should be a field element"
-                    ),
-                },
-                None => Ok(FieldElementExpression::Identifier(id)),
-            },
             FieldElementExpression::Add(box e1, box e2) => match (
                 self.fold_field_expression(e1)?,
                 self.fold_field_expression(e2)?,
@@ -1120,7 +1104,7 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
                     }
                 }
                 (ArrayExpressionInner::Identifier(id), UExpressionInner::Value(n)) => {
-                    match self.constants.get(&id) {
+                    match self.constants.get(&id.id) {
                         Some(a) => match a {
                             TypedExpression::Array(a) => match a.as_inner() {
                                 ArrayExpressionInner::Value(v) => {
@@ -1166,7 +1150,7 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
         e: ArrayExpressionInner<'ast, T>,
     ) -> Result<ArrayExpressionInner<'ast, T>, Error> {
         match e {
-            ArrayExpressionInner::Identifier(id) => match self.constants.get(&id) {
+            ArrayExpressionInner::Identifier(id) => match self.constants.get(&id.id) {
                 Some(e) => match e {
                     TypedExpression::Array(e) => Ok(e.as_inner().clone()),
                     _ => panic!("constant stored for an array should be an array"),
@@ -1183,13 +1167,6 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
         e: StructExpressionInner<'ast, T>,
     ) -> Result<StructExpressionInner<'ast, T>, Error> {
         match e {
-            StructExpressionInner::Identifier(id) => match self.constants.get(&id) {
-                Some(e) => match e {
-                    TypedExpression::Struct(e) => Ok(e.as_inner().clone()),
-                    _ => panic!("constant stored for an array should be an array"),
-                },
-                None => Ok(StructExpressionInner::Identifier(id)),
-            },
             StructExpressionInner::Value(v) => {
                 let v = v.into_iter().zip(ty.iter()).map(|(v, member)|
                     match self.fold_expression(v) {
@@ -1210,6 +1187,17 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
         }
     }
 
+    fn fold_identifier_expression<E: Expr<'ast, T> + Id<'ast, T> + ResultFold<'ast, T>>(
+        &mut self,
+        _: &E::Ty,
+        id: IdentifierExpression<'ast, E>,
+    ) -> Result<IdentifierOrExpression<'ast, T, E>, Self::Error> {
+        match self.constants.get(&id.id).cloned() {
+            Some(e) => Ok(IdentifierOrExpression::Expression(E::from(e).into_inner())),
+            None => Ok(IdentifierOrExpression::Identifier(id)),
+        }
+    }
+
     fn fold_boolean_expression(
         &mut self,
         e: BooleanExpression<'ast, T>,
@@ -1220,13 +1208,6 @@ impl<'ast, 'a, T: Field> ResultFolder<'ast, T> for Propagator<'ast, 'a, T> {
         // These kind of reduction rules are easier to apply later in the process, when we have canonical representations
         // of expressions, ie `a + a` would always be written `2 * a`
         match e {
-            BooleanExpression::Identifier(id) => match self.constants.get(&id) {
-                Some(e) => match e {
-                    TypedExpression::Boolean(e) => Ok(e.clone()),
-                    _ => panic!("constant stored for a boolean should be a boolean"),
-                },
-                None => Ok(BooleanExpression::Identifier(id)),
-            },
             BooleanExpression::FieldEq(box e1, box e2) => {
                 let e1 = self.fold_field_expression(e1)?;
                 let e2 = self.fold_field_expression(e2)?;

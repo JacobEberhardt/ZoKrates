@@ -150,85 +150,16 @@ impl<'ast, T: Field> Folder<'ast, T> for ConstantInliner<'ast, T> {
         }
     }
 
-    fn fold_field_expression(
+    fn fold_identifier_expression<
+        E: Expr<'ast, T> + Id<'ast, T> + From<TypedExpression<'ast, T>>,
+    >(
         &mut self,
-        e: FieldElementExpression<'ast, T>,
-    ) -> FieldElementExpression<'ast, T> {
-        match e {
-            FieldElementExpression::Identifier(ref id) => {
-                match self.get_constant_for_identifier(id) {
-                    Some(c) => c.try_into().unwrap(),
-                    None => fold_field_expression(self, e),
-                }
-            }
-            e => fold_field_expression(self, e),
-        }
-    }
-
-    fn fold_boolean_expression(
-        &mut self,
-        e: BooleanExpression<'ast, T>,
-    ) -> BooleanExpression<'ast, T> {
-        match e {
-            BooleanExpression::Identifier(ref id) => match self.get_constant_for_identifier(id) {
-                Some(c) => c.try_into().unwrap(),
-                None => fold_boolean_expression(self, e),
-            },
-            e => fold_boolean_expression(self, e),
-        }
-    }
-
-    fn fold_uint_expression_inner(
-        &mut self,
-        size: UBitwidth,
-        e: UExpressionInner<'ast, T>,
-    ) -> UExpressionInner<'ast, T> {
-        match e {
-            UExpressionInner::Identifier(ref id) => match self.get_constant_for_identifier(id) {
-                Some(c) => {
-                    let e: UExpression<'ast, T> = c.try_into().unwrap();
-                    e.into_inner()
-                }
-                None => fold_uint_expression_inner(self, size, e),
-            },
-            e => fold_uint_expression_inner(self, size, e),
-        }
-    }
-
-    fn fold_array_expression_inner(
-        &mut self,
-        ty: &ArrayType<'ast, T>,
-        e: ArrayExpressionInner<'ast, T>,
-    ) -> ArrayExpressionInner<'ast, T> {
-        match e {
-            ArrayExpressionInner::Identifier(ref id) => {
-                match self.get_constant_for_identifier(id) {
-                    Some(c) => {
-                        let e: ArrayExpression<'ast, T> = c.try_into().unwrap();
-                        e.into_inner()
-                    }
-                    None => fold_array_expression_inner(self, ty, e),
-                }
-            }
-            e => fold_array_expression_inner(self, ty, e),
-        }
-    }
-
-    fn fold_struct_expression_inner(
-        &mut self,
-        ty: &StructType<'ast, T>,
-        e: StructExpressionInner<'ast, T>,
-    ) -> StructExpressionInner<'ast, T> {
-        match e {
-            StructExpressionInner::Identifier(ref id) => match self.get_constant_for_identifier(id)
-            {
-                Some(c) => {
-                    let e: StructExpression<'ast, T> = c.try_into().unwrap();
-                    e.into_inner()
-                }
-                None => fold_struct_expression_inner(self, ty, e),
-            },
-            e => fold_struct_expression_inner(self, ty, e),
+        _: &E::Ty,
+        e: IdentifierExpression<'ast, E>,
+    ) -> IdentifierOrExpression<'ast, T, E> {
+        match self.get_constant_for_identifier(&e.id) {
+            Some(c) => IdentifierOrExpression::Expression(E::from(c).into_inner()),
+            None => IdentifierOrExpression::Identifier(e),
         }
     }
 }
