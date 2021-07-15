@@ -4,6 +4,7 @@ extern crate serde_json;
 #[cfg(test)]
 mod integration {
 
+    use glob::glob;
     use serde_json::from_reader;
     use std::fs;
     use std::fs::File;
@@ -403,5 +404,49 @@ mod integration {
                 test_compile_and_smtlib2(program_name.to_str().unwrap(), &prog, &path);
             }
         }
+    }
+
+    #[test]
+    fn test_rng_tutorial() {
+        let tmp_dir = TempDir::new(".tmp").unwrap();
+        let tmp_base = tmp_dir.path();
+
+        for p in glob("./examples/book/rng_tutorial/*").expect("Failed to read glob pattern") {
+            let path = p.unwrap();
+            std::fs::copy(path.clone(), tmp_base.join(path.file_name().unwrap())).unwrap();
+        }
+
+        let stdlib = std::fs::canonicalize("../zokrates_stdlib/stdlib").unwrap();
+
+        assert_cli::Assert::command(&[
+            "./test.sh",
+            env!("CARGO_BIN_EXE_zokrates"),
+            stdlib.to_str().unwrap(),
+        ])
+        .current_dir(tmp_base)
+        .succeeds()
+        .unwrap();
+    }
+
+    #[test]
+    fn test_sha256_tutorial() {
+        let tmp_dir = TempDir::new(".tmp").unwrap();
+        let tmp_base = tmp_dir.path();
+
+        for p in glob("./examples/book/sha256_tutorial/*").expect("Failed to read glob pattern") {
+            let path = p.unwrap();
+            std::fs::copy(path.clone(), tmp_base.join(path.file_name().unwrap())).unwrap();
+        }
+
+        let stdlib = std::fs::canonicalize("../zokrates_stdlib/stdlib").unwrap();
+
+        assert_cli::Assert::command(&[
+            "./test.sh",
+            env!("CARGO_BIN_EXE_zokrates"),
+            stdlib.to_str().unwrap(),
+        ])
+        .current_dir(tmp_base)
+        .succeeds()
+        .unwrap();
     }
 }
